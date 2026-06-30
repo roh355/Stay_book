@@ -1,0 +1,127 @@
+<div class="page">
+  <div class="page-head">
+    <div>
+      <h1>Conference Rooms</h1>
+      <p class="subtitle">Pick a date and floor, then open a room to book a time slot.</p>
+    </div>
+    <button class="btn btn-ghost search-toggle" type="button" (click)="toggleSearch()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      Search availability
+    </button>
+  </div>
+
+  @if (searchOpen()) {
+    <div class="search-panel card">
+      <div class="search-fields">
+        <div class="field">
+          <label class="label">Date</label>
+          <input class="input" type="date" [min]="minDate" [ngModel]="searchDate()" (ngModelChange)="searchDate.set($event)" />
+        </div>
+        <div class="field">
+          <label class="label">From</label>
+          <input class="input" type="time" step="1800" [ngModel]="searchStart()" (ngModelChange)="searchStart.set($event)" />
+        </div>
+        <div class="field">
+          <label class="label">To</label>
+          <input class="input" type="time" step="1800" [ngModel]="searchEnd()" (ngModelChange)="searchEnd.set($event)" />
+        </div>
+        <button class="btn btn-primary search-go" type="button" (click)="runSearch()">Search</button>
+      </div>
+
+      @if (searchError()) {
+        <div class="search-error">{{ searchError() }}</div>
+      }
+
+      @if (searchResults(); as results) {
+        @if (results.length) {
+          <div class="results">
+            <span class="results-label">Floors with availability — click to view:</span>
+            <div class="result-chips">
+              @for (r of results; track r.floor) {
+                <button class="result-chip" type="button" (click)="goToSearchResult(r.floor)">
+                  <strong>Floor {{ r.floor }}</strong>
+                  <span>{{ r.availableRooms }}/{{ r.totalRooms }} free</span>
+                </button>
+              }
+            </div>
+          </div>
+        } @else {
+          <div class="no-results">No rooms available for that date and time.</div>
+        }
+      }
+    </div>
+  }
+
+  <div class="layout">
+    <app-booking-sidebar
+      [date]="date()"
+      (dateChange)="date.set($event)"
+      [floor]="floor()"
+      (floorChange)="floor.set($event)"
+      [floors]="floors()"
+    />
+
+    <section class="main card">
+      @if (selectedRoom(); as room) {
+        <div class="graph-head-row">
+          <button class="btn btn-ghost back" type="button" (click)="backToGrid()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            All rooms
+          </button>
+          <div class="room-title">
+            <h2>{{ room.name }}</h2>
+            <span class="muted">Floor {{ room.floor }}</span>
+          </div>
+        </div>
+
+        @if (loadingGraph()) {
+          <div class="placeholder">Loading schedule…</div>
+        } @else {
+          <app-timeline-graph
+            [bookings]="roomBookings()"
+            [canBook]="isAdmin()"
+            (book)="onBook($event)"
+            (deleteBooking)="onDeleteBooking($event)"
+          />
+        }
+      } @else {
+        <div class="grid-head">
+          <h2>Floor {{ floor() }} · rooms</h2>
+          <span class="muted">{{ rooms().length }} rooms</span>
+        </div>
+
+        @if (loadingRooms()) {
+          <div class="placeholder">Loading rooms…</div>
+        } @else {
+          <div class="room-grid">
+            @for (room of rooms(); track room.id) {
+              <button
+                class="room-icon"
+                [class.full]="room.fullyBooked"
+                type="button"
+                (click)="selectRoom(room)"
+              >
+                <svg class="room-svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="16" rx="2"/>
+                  <path d="M3 9h18M9 9v11"/>
+                </svg>
+                <span class="room-name">{{ room.name }}</span>
+                @if (room.fullyBooked) {
+                  <span class="room-status">Not available</span>
+                } @else if (room.bookingCount > 0) {
+                  <span class="room-sub">{{ room.bookingCount }} booked</span>
+                } @else {
+                  <span class="room-sub free">Open</span>
+                }
+              </button>
+            }
+          </div>
+        }
+      }
+    </section>
+  </div>
+</div>
+
+@if (toast(); as t) {
+  <div class="toast" [class.error]="t.kind === 'error'">{{ t.text }}</div>
+}

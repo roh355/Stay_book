@@ -1,0 +1,38 @@
+.sidebar {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  position: sticky;
+  top: 86px;
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+}
+.pretty {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.nav-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+.nav {
+  padding: 9px 10px;
+  font-size: 12.5px;
+  justify-content: flex-start;
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    position: static;
+  }
+}

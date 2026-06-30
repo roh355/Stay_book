@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Admin {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  conferenceBookings ConferenceBooking[]
+  hostelBookings     HostelBooking[]
+}
+
+model Room {
+  id    Int    @id @default(autoincrement())
+  type  String // "CONFERENCE" | "HOSTEL"
+  floor Int
+  name  String
+
+  conferenceBookings ConferenceBooking[]
+  hostelBookings     HostelBooking[]
+
+  @@unique([type, floor, name])
+}
+
+model ConferenceBooking {
+  id          Int      @id @default(autoincrement())
+  roomId      Int
+  adminId     Int
+  date        String // "YYYY-MM-DD"
+  startMin    Int // minutes from midnight, multiple of 30
+  endMin      Int // minutes from midnight, multiple of 30 (0..1440)
+  description String?
+  createdAt   DateTime @default(now())
+
+  room  Room  @relation(fields: [roomId], references: [id])
+  admin Admin @relation(fields: [adminId], references: [id])
+
+  @@index([roomId, date])
+}
+
+model HostelBooking {
+  id          Int      @id @default(autoincrement())
+  roomId      Int
+  adminId     Int
+  startDate   String // "YYYY-MM-DD"
+  endDate     String // "YYYY-MM-DD" inclusive
+  description String?
+  createdAt   DateTime @default(now())
+
+  room  Room  @relation(fields: [roomId], references: [id])
+  admin Admin @relation(fields: [adminId], references: [id])
+
+  @@index([roomId])
+  @@index([startDate, endDate])
+}

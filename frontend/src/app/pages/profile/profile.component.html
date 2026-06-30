@@ -1,0 +1,85 @@
+<div class="profile-page">
+  <section class="identity card">
+    <div class="avatar-lg">
+      @if (auth.isAdmin()) {
+        {{ (auth.user()?.username || '?')[0].toUpperCase() }}
+      } @else {
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="8" r="4" />
+          <path d="M4 21v-1a7 7 0 0 1 14 0v1" />
+        </svg>
+      }
+    </div>
+
+    <div class="identity-info">
+      @if (auth.isAdmin()) {
+        <h1>{{ auth.user()?.username }}</h1>
+        <span class="badge badge-accent">Administrator</span>
+        <p class="perm">You can browse and create bookings across conference and hostel rooms.</p>
+        <button class="btn btn-ghost" type="button" (click)="logout()">Logout</button>
+      } @else {
+        <h1>Guest</h1>
+        <span class="badge badge-success">Viewer</span>
+        <p class="perm">You can browse all availability. Sign in as an admin to make bookings.</p>
+        <button class="btn btn-primary" type="button" (click)="openLogin()">Sign in to book</button>
+      }
+    </div>
+  </section>
+
+  @if (auth.isAdmin()) {
+    <section class="bookings card">
+      <div class="bookings-head">
+        <h2>Upcoming bookings</h2>
+        <span class="muted">{{ bookings().length }} total</span>
+      </div>
+
+      @if (loading()) {
+        <div class="placeholder">Loading your bookings…</div>
+      } @else if (bookings().length === 0) {
+        <div class="empty">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/>
+          </svg>
+          <p>No upcoming bookings yet. Book a room to see it here.</p>
+        </div>
+      } @else {
+        <ul class="booking-list">
+          @for (b of bookings(); track b.type + '-' + b.id) {
+            <li class="booking-item" (click)="goToBooking(b)">
+              <span class="type-icon" [class.hostel]="b.type === 'HOSTEL'">
+                @if (b.type === 'CONFERENCE') {
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></svg>
+                } @else {
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v13M3 12h13a4 4 0 0 1 4 4v4M3 9h7a3 3 0 0 1 3 3"/></svg>
+                }
+              </span>
+              <div class="booking-main">
+                <div class="booking-top">
+                  <strong>{{ b.roomName }}</strong>
+                  <span class="badge" [class.badge-accent]="b.type === 'CONFERENCE'" [class.badge-success]="b.type === 'HOSTEL'">
+                    {{ b.type === 'CONFERENCE' ? 'Conference' : 'Hostel' }}
+                  </span>
+                </div>
+                <span class="booking-meta">Floor {{ b.floor }} · {{ dateLabel(b) }} · {{ timeLabel(b) }}</span>
+                @if (b.description) {
+                  <span class="booking-desc">{{ b.description }}</span>
+                }
+              </div>
+              <button
+                class="delete-item-btn"
+                type="button"
+                aria-label="Delete booking"
+                (click)="deleteBooking($event, b)"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>
+                </svg>
+              </button>
+              <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  }
+</div>

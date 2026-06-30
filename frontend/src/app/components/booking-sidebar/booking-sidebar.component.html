@@ -1,0 +1,47 @@
+<aside class="sidebar card">
+  <div class="block">
+    <label class="label" for="date-input">Date</label>
+    <input
+      id="date-input"
+      class="input"
+      type="date"
+      [min]="minDate"
+      [ngModel]="date()"
+      (ngModelChange)="date.set($event)"
+    />
+    <div class="pretty">{{ prettyDate() }}</div>
+  </div>
+
+  <div class="block">
+    <label class="label" for="floor-select">Floor</label>
+    <select
+      id="floor-select"
+      class="select"
+      [ngModel]="floor()"
+      (ngModelChange)="onFloorChange($event)"
+    >
+      @for (f of floors(); track f) {
+        <option [value]="f">Floor {{ f }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="nav-grid">
+    <button class="btn btn-ghost nav" type="button" (click)="prevFloor()" [disabled]="!canPrevFloor">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>
+      Prev floor
+    </button>
+    <button class="btn btn-ghost nav" type="button" (click)="nextFloor()" [disabled]="!canNextFloor">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      Next floor
+    </button>
+    <button class="btn btn-ghost nav" type="button" (click)="prevDate()" [disabled]="!canPrevDate">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      Prev date
+    </button>
+    <button class="btn btn-ghost nav" type="button" (click)="nextDate()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+      Next date
+    </button>
+  </div>
+</aside>

@@ -1,0 +1,118 @@
+<div class="graph">
+  <div class="graph-head">
+    <div class="legend">
+      <span class="legend-item"><span class="swatch booked"></span> Booked</span>
+      <span class="legend-item"><span class="swatch free"></span> Available</span>
+      @if (selectionBlock()) {
+        <span class="legend-item"><span class="swatch sel"></span> Your selection</span>
+      }
+    </div>
+    @if (!canBook()) {
+      <span class="readonly-note">Sign in as admin to book days</span>
+    } @else {
+      <span class="readonly-note">Drag across free days to select a stay · hover booked days to delete</span>
+    }
+  </div>
+
+  <div class="plot">
+    <div class="plot-body">
+      <div class="gridlines">
+        @for (d of days(); track d.date) {
+          <div class="gridline" [style.left.%]="(d.index / 15) * 100"></div>
+        }
+      </div>
+
+      <div class="baseline"></div>
+
+      <div
+        #track
+        class="track"
+        [class.disabled]="!canBook()"
+        (pointerdown)="onPointerDown($event)"
+        (pointermove)="onPointerMove($event)"
+        (pointerup)="onPointerUp($event)"
+        (pointercancel)="onPointerUp($event)"
+      >
+        @for (b of bookedBlocks(); track b.id) {
+          <div
+            class="bar booked"
+            [class.deletable]="canBook()"
+            [style.left.%]="b.leftPct"
+            [style.width.%]="b.widthPct"
+          >
+            @if (canBook()) {
+              <button
+                class="delete-btn"
+                type="button"
+                aria-label="Delete booking"
+                (click)="onDelete($event, b.id)"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>
+                </svg>
+              </button>
+            }
+          </div>
+        }
+
+        @if (selectionBlock(); as sel) {
+          <div
+            class="bar selection"
+            [class.invalid]="!selectionValid()"
+            [style.left.%]="sel.leftPct"
+            [style.width.%]="sel.widthPct"
+          ></div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <div class="x-axis">
+    @for (d of days(); track d.date) {
+      <div class="day-cell">
+        <span class="day-wd">{{ d.weekday }}</span>
+        <span class="day-num">{{ d.day }}</span>
+      </div>
+    }
+  </div>
+
+  <div class="action-row">
+    @if (selection(); as sel) {
+      <div class="sel-col">
+        <div class="sel-summary">
+          <span class="sel-time">{{ rangeLabel(sel.startDate, sel.endDate) }}</span>
+          <span class="sel-dur">{{ sel.count }} {{ sel.count === 1 ? 'day' : 'days' }}</span>
+          @if (!selectionValid()) {
+            <span class="badge badge-danger">Overlaps a booking</span>
+          }
+        </div>
+        @if (canBook() && selectionValid()) {
+          <input
+            class="input desc-input"
+            type="text"
+            placeholder="Description (optional)"
+            maxlength="500"
+            [ngModel]="description()"
+            (ngModelChange)="description.set($event)"
+          />
+        }
+      </div>
+      <div class="action-btns">
+        <button class="btn btn-ghost" type="button" (click)="clearSelection()">Clear</button>
+        <button
+          class="btn btn-primary"
+          type="button"
+          [disabled]="!canBook() || !selectionValid()"
+          (click)="confirmBook()"
+        >
+          Book stay
+        </button>
+      </div>
+    } @else {
+      <div class="sel-summary muted">
+        {{ canBook() ? 'No days selected yet.' : 'Viewing only — booking disabled.' }}
+      </div>
+      <button class="btn btn-primary" type="button" disabled>Book stay</button>
+    }
+  </div>
+</div>
