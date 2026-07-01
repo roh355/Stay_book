@@ -20,8 +20,15 @@ export class ApiService {
     return this.http.get<number[]>('/api/conference/floors');
   }
 
-  getConferenceRooms(floor: number, date: string): Observable<ConferenceRoom[]> {
-    const params = new HttpParams().set('floor', floor).set('date', date);
+  getConferenceRooms(
+    floor: number,
+    date: string,
+    interval?: { startMin: number; endMin: number }
+  ): Observable<ConferenceRoom[]> {
+    let params = new HttpParams().set('floor', floor).set('date', date);
+    if (interval) {
+      params = params.set('startMin', interval.startMin).set('endMin', interval.endMin);
+    }
     return this.http.get<ConferenceRoom[]>('/api/conference/rooms', { params });
   }
 
@@ -69,8 +76,15 @@ export class ApiService {
     return this.http.get<number[]>('/api/hostel/floors');
   }
 
-  getHostelRooms(floor: number, date: string): Observable<HostelRoom[]> {
-    const params = new HttpParams().set('floor', floor).set('date', date);
+  getHostelRooms(
+    floor: number,
+    date: string,
+    period?: { from: string; to: string }
+  ): Observable<HostelRoom[]> {
+    let params = new HttpParams().set('floor', floor).set('date', date);
+    if (period) {
+      params = params.set('from', period.from).set('to', period.to);
+    }
     return this.http.get<HostelRoom[]>('/api/hostel/rooms', { params });
   }
 

@@ -31,6 +31,12 @@
   justify-content: flex-start;
 }
 
+.status-btn {
+  width: 100%;
+  justify-content: center;
+  gap: 8px;
+}
+
 @media (max-width: 900px) {
   .sidebar {
     position: static;

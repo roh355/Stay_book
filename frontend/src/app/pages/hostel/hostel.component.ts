@@ -1,4 +1,4 @@
-import { Component, OnInit, effect, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../services/api.service';
@@ -12,6 +12,8 @@ interface Toast {
   text: string;
   kind: 'success' | 'error';
 }
+
+type View = 'idle' | 'status' | 'search';
 
 const WINDOW_DAYS = 15;
 
@@ -34,8 +36,18 @@ export class HostelComponent implements OnInit {
   date = signal<string>(todayISO());
   floor = signal<number>(1);
 
-  rooms = signal<HostelRoom[]>([]);
+  view = signal<View>('idle');
+
+  statusRooms = signal<HostelRoom[]>([]);
   loadingRooms = signal(false);
+
+  searchFrom = signal<string>(todayISO());
+  searchTo = signal<string>(addDaysISO(todayISO(), 7));
+  searchResults = signal<FloorAvailability[] | null>(null);
+  searchError = signal<string | null>(null);
+  searchSelectedFloor = signal<number | null>(null);
+  searchRooms = signal<HostelRoom[]>([]);
+  loadingSearchRooms = signal(false);
 
   selectedRoom = signal<HostelRoom | null>(null);
   roomBookings = signal<HostelInterval[]>([]);
@@ -43,21 +55,19 @@ export class HostelComponent implements OnInit {
 
   toast = signal<Toast | null>(null);
 
-  searchOpen = signal(false);
-  searchFrom = signal<string>(todayISO());
-  searchTo = signal<string>(addDaysISO(todayISO(), 7));
-  searchResults = signal<FloorAvailability[] | null>(null);
-  searchError = signal<string | null>(null);
-
   readonly minDate = todayISO();
+
+  // Window start used by the currently active mode.
+  activeBase = computed(() => (this.view() === 'search' ? this.searchFrom() : this.date()));
 
   constructor() {
     effect(() => {
       const date = this.date();
       const floor = this.floor();
+      if (this.view() !== 'status') return;
       if (!this.floors().length) return;
       this.selectedRoom.set(null);
-      this.loadRooms(floor, date);
+      this.loadStatusRooms(floor, date);
     });
   }
 
@@ -77,15 +87,30 @@ export class HostelComponent implements OnInit {
       } else if (floors.length) {
         this.floor.set(floors[0]);
       }
-      this.loadRooms(this.floor(), this.date());
+      // Deep link (e.g. from profile) lands directly in status mode.
+      // The effect performs the load (and opens the pending room).
+      if (qpFloor || qpRoom) {
+        this.view.set('status');
+      }
     });
   }
 
-  private loadRooms(floor: number, date: string): void {
+  // ===== Status mode =====
+  showStatus(): void {
+    this.searchSelectedFloor.set(null);
+    this.selectedRoom.set(null);
+    if (this.view() === 'status') {
+      this.loadStatusRooms(this.floor(), this.date());
+    } else {
+      this.view.set('status');
+    }
+  }
+
+  private loadStatusRooms(floor: number, date: string): void {
     this.loadingRooms.set(true);
     this.api.getHostelRooms(floor, date).subscribe({
       next: (rooms) => {
-        this.rooms.set(rooms);
+        this.statusRooms.set(rooms);
         this.loadingRooms.set(false);
         if (this.pendingRoomId !== null) {
           const room = rooms.find((r) => r.id === this.pendingRoomId);
@@ -97,10 +122,54 @@ export class HostelComponent implements OnInit {
     });
   }
 
+  // ===== Search mode =====
+  runSearch(): void {
+    this.searchError.set(null);
+    const from = this.searchFrom();
+    const to = this.searchTo();
+    if (to < from) {
+      this.searchError.set('To date must be on or after from date');
+      return;
+    }
+    this.api.searchHostel(from, to).subscribe({
+      next: (res) => {
+        this.searchResults.set(res.results);
+        this.searchSelectedFloor.set(null);
+        this.selectedRoom.set(null);
+        this.view.set('search');
+      },
+      error: (err) => {
+        this.searchError.set(err?.error?.error || 'Search failed');
+        this.searchResults.set(null);
+      },
+    });
+  }
+
+  openSearchFloor(floor: number): void {
+    this.searchSelectedFloor.set(floor);
+    this.selectedRoom.set(null);
+    this.loadingSearchRooms.set(true);
+    this.api
+      .getHostelRooms(floor, this.searchFrom(), { from: this.searchFrom(), to: this.searchTo() })
+      .subscribe({
+        next: (rooms) => {
+          this.searchRooms.set(rooms);
+          this.loadingSearchRooms.set(false);
+        },
+        error: () => this.loadingSearchRooms.set(false),
+      });
+  }
+
+  backToSearchResults(): void {
+    this.searchSelectedFloor.set(null);
+    this.selectedRoom.set(null);
+  }
+
+  // ===== Room drill-in =====
   selectRoom(room: HostelRoom): void {
     this.selectedRoom.set(room);
     this.loadingGraph.set(true);
-    const from = this.date();
+    const from = this.activeBase();
     const to = addDaysISO(from, WINDOW_DAYS - 1);
     this.api.getHostelRoomBookings(room.id, from, to).subscribe({
       next: (res) => {
@@ -113,6 +182,14 @@ export class HostelComponent implements OnInit {
 
   backToGrid(): void {
     this.selectedRoom.set(null);
+  }
+
+  private refreshActiveGrid(): void {
+    if (this.view() === 'search' && this.searchSelectedFloor() !== null) {
+      this.openSearchFloor(this.searchSelectedFloor()!);
+    } else if (this.view() === 'status') {
+      this.loadStatusRooms(this.floor(), this.date());
+    }
   }
 
   onBook(stay: { startDate: string; endDate: string; description: string | null }): void {
@@ -128,7 +205,7 @@ export class HostelComponent implements OnInit {
               : `${formatDateMedium(stay.startDate)} – ${formatDateMedium(stay.endDate)}`;
           this.showToast(`Booked ${room.name}, ${label}`, 'success');
           this.selectRoom(room);
-          this.loadRooms(this.floor(), this.date());
+          this.refreshActiveGrid();
         },
         error: (err) => this.showToast(err?.error?.error || 'Booking failed', 'error'),
       });
@@ -141,38 +218,10 @@ export class HostelComponent implements OnInit {
       next: () => {
         this.showToast('Booking deleted', 'success');
         this.selectRoom(room);
-        this.loadRooms(this.floor(), this.date());
+        this.refreshActiveGrid();
       },
       error: (err) => this.showToast(err?.error?.error || 'Delete failed', 'error'),
     });
-  }
-
-  toggleSearch(): void {
-    this.searchOpen.update((v) => !v);
-  }
-
-  runSearch(): void {
-    this.searchError.set(null);
-    const from = this.searchFrom();
-    const to = this.searchTo();
-    if (to < from) {
-      this.searchError.set('To date must be on or after from date');
-      return;
-    }
-    this.api.searchHostel(from, to).subscribe({
-      next: (res) => this.searchResults.set(res.results),
-      error: (err) => {
-        this.searchError.set(err?.error?.error || 'Search failed');
-        this.searchResults.set(null);
-      },
-    });
-  }
-
-  goToSearchResult(floor: number): void {
-    this.date.set(this.searchFrom());
-    this.floor.set(floor);
-    this.selectedRoom.set(null);
-    this.searchOpen.set(false);
   }
 
   private showToast(text: string, kind: 'success' | 'error'): void {

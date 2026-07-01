@@ -1,4 +1,4 @@
-import { Component, computed, input, model } from '@angular/core';
+import { Component, computed, input, model, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { addDaysISO, formatDateLong, todayISO } from '../../utils/time';
 
@@ -13,6 +13,8 @@ export class BookingSidebarComponent {
   date = model.required<string>();
   floor = model.required<number>();
   floors = input.required<number[]>();
+  active = input<boolean>(false);
+  status = output<void>();
 
   readonly minDate = todayISO();
   readonly prettyDate = computed(() => formatDateLong(this.date()));

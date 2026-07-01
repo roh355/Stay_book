@@ -4,46 +4,43 @@
       <h1>Hostel Rooms</h1>
       <p class="subtitle">Pick a floor, open a room, then drag across days to book a stay.</p>
     </div>
-    <button class="btn btn-ghost search-toggle" type="button" (click)="toggleSearch()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-      Search availability
-    </button>
   </div>
 
-  @if (searchOpen()) {
-    <div class="search-panel card">
-      <div class="search-fields">
-        <div class="field">
-          <label class="label">From</label>
-          <input class="input" type="date" [min]="minDate" [ngModel]="searchFrom()" (ngModelChange)="searchFrom.set($event)" />
-        </div>
-        <div class="field">
-          <label class="label">To</label>
-          <input class="input" type="date" [min]="searchFrom()" [ngModel]="searchTo()" (ngModelChange)="searchTo.set($event)" />
-        </div>
-        <button class="btn btn-primary search-go" type="button" (click)="runSearch()">Search</button>
+  <div class="search-panel card">
+    <div class="search-head">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      Search availability
+    </div>
+    <div class="search-fields">
+      <div class="field">
+        <label class="label">From</label>
+        <input class="input" type="date" [min]="minDate" [ngModel]="searchFrom()" (ngModelChange)="searchFrom.set($event)" />
       </div>
+      <div class="field">
+        <label class="label">To</label>
+        <input class="input" type="date" [min]="searchFrom()" [ngModel]="searchTo()" (ngModelChange)="searchTo.set($event)" />
+      </div>
+      <button class="btn btn-primary search-go" type="button" (click)="runSearch()">Search</button>
+    </div>
+    @if (searchError()) {
+      <div class="search-error">{{ searchError() }}</div>
+    }
+  </div>
 
-      @if (searchError()) {
-        <div class="search-error">{{ searchError() }}</div>
-      }
-
-      @if (searchResults(); as results) {
-        @if (results.length) {
-          <div class="results">
-            <span class="results-label">Floors with availability — click to view (min free rooms in range):</span>
-            <div class="result-chips">
-              @for (r of results; track r.floor) {
-                <button class="result-chip" type="button" (click)="goToSearchResult(r.floor)">
-                  <strong>Floor {{ r.floor }}</strong>
-                  <span>min {{ r.availableRooms }}/{{ r.totalRooms }} free</span>
-                </button>
-              }
-            </div>
-          </div>
-        } @else {
-          <div class="no-results">No rooms available across that date range.</div>
-        }
+  @if (view() === 'search' && searchResults() !== null) {
+    <div class="floor-results card">
+      <span class="fr-label">Floors with availability — click to view rooms (min free in range):</span>
+      @if (searchResults()!.length) {
+        <div class="result-chips">
+          @for (r of searchResults()!; track r.floor) {
+            <button class="result-chip" type="button" [class.active]="searchSelectedFloor() === r.floor" (click)="openSearchFloor(r.floor)">
+              <strong>Floor {{ r.floor }}</strong>
+              <span>min {{ r.availableRooms }}/{{ r.totalRooms }} free</span>
+            </button>
+          }
+        </div>
+      } @else {
+        <span class="no-results">No rooms available across that date range.</span>
       }
     </div>
   }
@@ -55,10 +52,13 @@
       [floor]="floor()"
       (floorChange)="floor.set($event)"
       [floors]="floors()"
+      [active]="view() === 'status'"
+      (status)="showStatus()"
     />
 
     <section class="main card">
       @if (selectedRoom(); as room) {
+        <!-- Room timeline -->
         <div class="graph-head-row">
           <button class="btn btn-ghost back" type="button" (click)="backToGrid()">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
@@ -75,23 +75,55 @@
         } @else {
           <app-hostel-timeline
             [bookings]="roomBookings()"
-            [baseDate]="date()"
+            [baseDate]="activeBase()"
             [canBook]="isAdmin()"
             (book)="onBook($event)"
             (deleteBooking)="onDeleteBooking($event)"
           />
         }
-      } @else {
+      } @else if (view() === 'search') {
+        <!-- Search mode -->
+        @if (searchSelectedFloor(); as sf) {
+          <div class="grid-head">
+            <h2>Floor {{ sf }} · rooms</h2>
+            <span class="muted">{{ searchFrom() }} → {{ searchTo() }}</span>
+          </div>
+
+          @if (loadingSearchRooms()) {
+            <div class="placeholder">Loading rooms…</div>
+          } @else {
+            <div class="room-grid">
+              @for (room of searchRooms(); track room.id) {
+                <button class="room-icon" [class.full]="room.periodAvailable === false" type="button" (click)="selectRoom(room)">
+                  <svg class="room-svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v13M3 12h13a4 4 0 0 1 4 4v4M3 9h7a3 3 0 0 1 3 3"/></svg>
+                  <span class="room-name">{{ room.name }}</span>
+                  @if (room.periodAvailable === false) {
+                    <span class="room-status">Not available</span>
+                  } @else {
+                    <span class="room-sub free">Available</span>
+                  }
+                </button>
+              }
+            </div>
+          }
+        } @else {
+          <div class="empty-state">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v13M3 12h13a4 4 0 0 1 4 4v4M3 9h7a3 3 0 0 1 3 3"/></svg>
+            <p>Pick a floor from the results above to see its rooms.</p>
+          </div>
+        }
+      } @else if (view() === 'status') {
+        <!-- Status mode -->
         <div class="grid-head">
           <h2>Floor {{ floor() }} · rooms</h2>
-          <span class="muted">{{ rooms().length }} rooms</span>
+          <span class="muted">{{ statusRooms().length }} rooms</span>
         </div>
 
         @if (loadingRooms()) {
           <div class="placeholder">Loading rooms…</div>
         } @else {
           <div class="room-grid">
-            @for (room of rooms(); track room.id) {
+            @for (room of statusRooms(); track room.id) {
               <button
                 class="room-icon"
                 [class.full]="room.freeDays === 0"
@@ -99,9 +131,7 @@
                 (click)="selectRoom(room)"
                 [title]="room.freeDays === 0 ? 'Fully booked for the next ' + room.windowDays + ' days' : 'Open to book'"
               >
-                <svg class="room-svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M3 7v13M3 12h13a4 4 0 0 1 4 4v4M3 9h7a3 3 0 0 1 3 3"/>
-                </svg>
+                <svg class="room-svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v13M3 12h13a4 4 0 0 1 4 4v4M3 9h7a3 3 0 0 1 3 3"/></svg>
                 <span class="room-name">{{ room.name }}</span>
                 @if (room.freeDays === 0) {
                   <span class="room-status">Not available</span>
@@ -116,6 +146,12 @@
             <p class="hint-note">Sign in as admin to book a room.</p>
           }
         }
+      } @else {
+        <!-- Idle -->
+        <div class="empty-state">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v13M3 12h13a4 4 0 0 1 4 4v4M3 9h7a3 3 0 0 1 3 3"/></svg>
+          <p>Pick a floor and date, then click <strong>Show rooms</strong> — or use <strong>Search availability</strong> to find open stays.</p>
+        </div>
       }
     </section>
   </div>

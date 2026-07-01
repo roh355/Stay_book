@@ -17,6 +17,7 @@ export interface ConferenceRoom {
   floor: number;
   bookingCount: number;
   fullyBooked: boolean;
+  slotAvailable?: boolean | null;
 }
 
 export interface ConferenceInterval {
@@ -40,6 +41,7 @@ export interface HostelRoom {
   bookedOnDate: boolean;
   freeDays: number;
   windowDays: number;
+  periodAvailable?: boolean | null;
 }
 
 export interface HostelInterval {

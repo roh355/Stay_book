@@ -67,6 +67,9 @@
   flex: 1;
   height: 150px;
 }
+.track {
+  overflow: hidden;
+}
 .gridlines {
   position: absolute;
   inset: 0;
@@ -116,7 +119,6 @@
   color: #fff;
   box-shadow: var(--shadow-sm);
   border: 1px solid color-mix(in srgb, var(--danger) 60%, #000);
-  position: relative;
 }
 .bar.booked.deletable:hover .delete-btn {
   opacity: 1;

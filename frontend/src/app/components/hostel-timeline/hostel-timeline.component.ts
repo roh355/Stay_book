@@ -25,6 +25,9 @@ interface Block {
   id: number;
   leftPct: number;
   widthPct: number;
+  label?: string;
+  startLabel?: string;
+  endLabel?: string | null;
 }
 
 @Component({
@@ -66,10 +69,14 @@ export class HostelTimelineComponent {
       if (endIdx < 0 || startIdx > DAYS - 1) continue;
       startIdx = Math.max(0, startIdx);
       endIdx = Math.min(DAYS - 1, endIdx);
+      const single = b.startDate === b.endDate;
       blocks.push({
         id: b.id,
         leftPct: (startIdx / DAYS) * 100,
         widthPct: ((endIdx - startIdx + 1) / DAYS) * 100,
+        label: this.rangeLabel(b.startDate, b.endDate),
+        startLabel: formatDateMedium(b.startDate),
+        endLabel: single ? null : formatDateMedium(b.endDate),
       });
     }
     return blocks;

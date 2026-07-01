@@ -100,6 +100,28 @@
   box-shadow: var(--shadow-sm);
   border: 1px solid color-mix(in srgb, var(--danger) 60%, #000);
 }
+.bar-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.1;
+  padding: 0 2px;
+  opacity: 0.95;
+  overflow: hidden;
+  text-align: center;
+}
+.bar-label .d {
+  white-space: nowrap;
+}
+.bar-label .arr {
+  opacity: 0.85;
+}
+.bar.booked.deletable:hover .bar-label {
+  opacity: 0;
+}
 .bar.booked.deletable:hover .delete-btn {
   opacity: 1;
   transform: scale(1);

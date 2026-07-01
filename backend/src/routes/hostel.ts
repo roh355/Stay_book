@@ -36,15 +36,29 @@ router.get("/rooms", async (req: Request, res: Response) => {
     return res.status(400).json({ error: "valid date (YYYY-MM-DD) is required" });
   }
 
+  // Optional search period: if from/to provided, report periodAvailable per room.
+  const periodFrom = req.query.from;
+  const periodTo = req.query.to;
+  const hasPeriod = periodFrom !== undefined && periodTo !== undefined;
+  if (hasPeriod) {
+    const periodErr = validateDateRange(periodFrom, periodTo);
+    if (periodErr) return res.status(400).json({ error: periodErr });
+  }
+
   const windowEnd = addDaysISO(date, WINDOW_DAYS - 1);
   const windowDates = dateRange(date, windowEnd);
+
+  // Fetch bookings across whichever span is widest (window or search period).
+  const fetchFrom = hasPeriod && (periodFrom as string) < date ? (periodFrom as string) : date;
+  const fetchTo =
+    hasPeriod && (periodTo as string) > windowEnd ? (periodTo as string) : windowEnd;
 
   const rooms = await prisma.room.findMany({
     where: { type: TYPE, floor },
     orderBy: { name: "asc" },
     include: {
       hostelBookings: {
-        where: { startDate: { lte: windowEnd }, endDate: { gte: date } },
+        where: { startDate: { lte: fetchTo }, endDate: { gte: fetchFrom } },
         select: { startDate: true, endDate: true },
       },
     },
@@ -63,6 +77,17 @@ router.get("/rooms", async (req: Request, res: Response) => {
       ),
       freeDays,
       windowDays: WINDOW_DAYS,
+      periodAvailable: hasPeriod
+        ? !room.hostelBookings.some(
+            (b) =>
+              dateRangesOverlap(
+                periodFrom as string,
+                periodTo as string,
+                b.startDate,
+                b.endDate
+              )
+          )
+        : null,
     };
   });
 

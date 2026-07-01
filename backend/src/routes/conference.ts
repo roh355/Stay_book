@@ -19,6 +19,7 @@ router.get("/floors", async (_req: Request, res: Response) => {
 });
 
 // Rooms on a floor with fullyBooked flag for a date.
+// Optional startMin/endMin: also report slotAvailable for that interval (search mode).
 router.get("/rooms", async (req: Request, res: Response) => {
   const floor = Number(req.query.floor);
   const date = req.query.date;
@@ -27,6 +28,14 @@ router.get("/rooms", async (req: Request, res: Response) => {
   }
   if (!isValidDate(date)) {
     return res.status(400).json({ error: "valid date (YYYY-MM-DD) is required" });
+  }
+
+  const hasInterval = req.query.startMin !== undefined && req.query.endMin !== undefined;
+  const startMin = Number(req.query.startMin);
+  const endMin = Number(req.query.endMin);
+  if (hasInterval) {
+    const intervalErr = validateInterval(startMin, endMin);
+    if (intervalErr) return res.status(400).json({ error: intervalErr });
   }
 
   const rooms = await prisma.room.findMany({
@@ -46,6 +55,9 @@ router.get("/rooms", async (req: Request, res: Response) => {
     floor: room.floor,
     bookingCount: room.conferenceBookings.length,
     fullyBooked: coversFullDay(room.conferenceBookings),
+    slotAvailable: hasInterval
+      ? !room.conferenceBookings.some((b) => overlaps(startMin, endMin, b.startMin, b.endMin))
+      : null,
   }));
 
   return res.json(result);
