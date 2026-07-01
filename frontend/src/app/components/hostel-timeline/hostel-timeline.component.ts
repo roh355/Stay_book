@@ -12,8 +12,6 @@ import { FormsModule } from '@angular/forms';
 import { HostelInterval } from '../../models';
 import { daysBetween, formatDateMedium, formatDayShort, listDays } from '../../utils/time';
 
-const DAYS = 15;
-
 interface DayCell {
   index: number;
   date: string;
@@ -40,10 +38,19 @@ interface Block {
 export class HostelTimelineComponent {
   bookings = input<HostelInterval[]>([]);
   baseDate = input.required<string>();
+  // Number of days the x-axis spans, starting at baseDate. Driven by the
+  // active mode: the full booking window in status mode, or the searched
+  // date range in search mode.
+  dayCount = input<number>(15);
   canBook = input<boolean>(false);
 
   book = output<{ startDate: string; endDate: string; description: string | null }>();
   deleteBooking = output<number>();
+
+  // Minimum readable width per day column (px). The canvas fills the available
+  // space when the days fit, and becomes horizontally scrollable once
+  // dayCount * minCell exceeds the container width.
+  readonly minCell = 44;
 
   track = viewChild<ElementRef<HTMLDivElement>>('track');
 
@@ -54,7 +61,7 @@ export class HostelTimelineComponent {
   dragging = signal(false);
 
   readonly days = computed<DayCell[]>(() =>
-    listDays(this.baseDate(), DAYS).map((date, index) => {
+    listDays(this.baseDate(), this.dayCount()).map((date, index) => {
       const { weekday, day } = formatDayShort(date);
       return { index, date, weekday, day };
     })
@@ -62,18 +69,19 @@ export class HostelTimelineComponent {
 
   readonly bookedBlocks = computed<Block[]>(() => {
     const base = this.baseDate();
+    const days = this.dayCount();
     const blocks: Block[] = [];
     for (const b of this.bookings()) {
       let startIdx = daysBetween(base, b.startDate);
       let endIdx = daysBetween(base, b.endDate);
-      if (endIdx < 0 || startIdx > DAYS - 1) continue;
+      if (endIdx < 0 || startIdx > days - 1) continue;
       startIdx = Math.max(0, startIdx);
-      endIdx = Math.min(DAYS - 1, endIdx);
+      endIdx = Math.min(days - 1, endIdx);
       const single = b.startDate === b.endDate;
       blocks.push({
         id: b.id,
-        leftPct: (startIdx / DAYS) * 100,
-        widthPct: ((endIdx - startIdx + 1) / DAYS) * 100,
+        leftPct: (startIdx / days) * 100,
+        widthPct: ((endIdx - startIdx + 1) / days) * 100,
         label: this.rangeLabel(b.startDate, b.endDate),
         startLabel: formatDateMedium(b.startDate),
         endLabel: single ? null : formatDateMedium(b.endDate),
@@ -101,10 +109,11 @@ export class HostelTimelineComponent {
   readonly selectionBlock = computed<Block | null>(() => {
     const s = this.selection();
     if (!s) return null;
+    const days = this.dayCount();
     return {
       id: -1,
-      leftPct: (s.lo / DAYS) * 100,
-      widthPct: ((s.hi - s.lo + 1) / DAYS) * 100,
+      leftPct: (s.lo / days) * 100,
+      widthPct: ((s.hi - s.lo + 1) / days) * 100,
     };
   });
 
@@ -121,6 +130,7 @@ export class HostelTimelineComponent {
     effect(() => {
       this.bookings();
       this.baseDate();
+      this.dayCount();
       this.dragStartSlot.set(null);
       this.dragEndSlot.set(null);
       this.dragging.set(false);
@@ -132,9 +142,10 @@ export class HostelTimelineComponent {
     const el = this.track()?.nativeElement;
     if (!el) return 0;
     const rect = el.getBoundingClientRect();
+    const days = this.dayCount();
     const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
-    let slot = Math.floor(ratio * DAYS);
-    if (slot >= DAYS) slot = DAYS - 1;
+    let slot = Math.floor(ratio * days);
+    if (slot >= days) slot = days - 1;
     if (slot < 0) slot = 0;
     return slot;
   }

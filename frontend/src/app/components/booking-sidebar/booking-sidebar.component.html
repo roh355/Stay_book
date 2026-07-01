@@ -1,49 +1,69 @@
 <aside class="sidebar card">
-  <div class="block">
-    <label class="label" for="date-input">Date</label>
-    <input
-      id="date-input"
-      class="input"
-      type="date"
-      [min]="minDate"
-      [ngModel]="date()"
-      (ngModelChange)="date.set($event)"
-    />
-    <div class="pretty">{{ prettyDate() }}</div>
+  <div class="ctrl">
+    <span class="label">Floor</span>
+    <div class="stepper">
+      <button class="step-btn" type="button" (click)="prevFloor()" [disabled]="!canPrevFloor" aria-label="Previous floor">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <div class="step-mid">
+        <button class="step-label" type="button" (click)="toggleFloorMenu($event)" [attr.aria-expanded]="floorMenuOpen()">
+          <span>Floor {{ floor() }}</span>
+          <svg class="caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        @if (floorMenuOpen()) {
+          <div class="dropdown" (click)="$event.stopPropagation()">
+            @for (f of floors(); track f) {
+              <button class="dropdown-item" type="button" [class.active]="f === floor()" (click)="selectFloor(f)">Floor {{ f }}</button>
+            }
+          </div>
+        }
+      </div>
+      <button class="step-btn" type="button" (click)="nextFloor()" [disabled]="!canNextFloor" aria-label="Next floor">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+    </div>
   </div>
 
-  <div class="block">
-    <label class="label" for="floor-select">Floor</label>
-    <select
-      id="floor-select"
-      class="select"
-      [ngModel]="floor()"
-      (ngModelChange)="onFloorChange($event)"
-    >
-      @for (f of floors(); track f) {
-        <option [value]="f">Floor {{ f }}</option>
-      }
-    </select>
+  <div class="ctrl">
+    <span class="label">Date</span>
+    <div class="stepper">
+      <button class="step-btn" type="button" (click)="prevDate()" [disabled]="!canPrevDate" aria-label="Previous date">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <div class="step-mid">
+        <button class="step-label" type="button" (click)="openCalendar()">
+          <svg class="cal-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></svg>
+          <span>{{ prettyDate() }}</span>
+        </button>
+        <input
+          #dateInput
+          class="sr-date"
+          type="date"
+          [min]="minDate"
+          [ngModel]="date()"
+          (ngModelChange)="date.set($event)"
+          tabindex="-1"
+          aria-hidden="true"
+        />
+      </div>
+      <button class="step-btn" type="button" (click)="nextDate()" aria-label="Next date">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+    </div>
   </div>
 
-  <div class="nav-grid">
-    <button class="btn btn-ghost nav" type="button" (click)="prevFloor()" [disabled]="!canPrevFloor">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>
-      Prev floor
-    </button>
-    <button class="btn btn-ghost nav" type="button" (click)="nextFloor()" [disabled]="!canNextFloor">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-      Next floor
-    </button>
-    <button class="btn btn-ghost nav" type="button" (click)="prevDate()" [disabled]="!canPrevDate">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-      Prev date
-    </button>
-    <button class="btn btn-ghost nav" type="button" (click)="nextDate()">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-      Next date
-    </button>
-  </div>
+  @if (showRange()) {
+    <div class="ctrl">
+      <span class="label">Look ahead</span>
+      <div class="segmented">
+        @for (opt of rangeOptions; track opt.key) {
+          <button class="seg" type="button" [class.active]="range() === opt.key" (click)="setRange(opt.key)">
+            {{ opt.label }}
+          </button>
+        }
+      </div>
+    </div>
+  }
 
   <button class="btn btn-primary status-btn" type="button" (click)="status.emit()" [class.active]="active()">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>

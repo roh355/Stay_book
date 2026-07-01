@@ -3,6 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
+import { ConfirmService } from '../../services/confirm.service';
 import { ConferenceInterval, ConferenceRoom, FloorAvailability } from '../../models';
 import { BookingSidebarComponent } from '../../components/booking-sidebar/booking-sidebar.component';
 import { TimelineGraphComponent } from '../../components/timeline-graph/timeline-graph.component';
@@ -25,6 +26,7 @@ type View = 'idle' | 'status' | 'search';
 export class ConferenceComponent implements OnInit {
   private api = inject(ApiService);
   private auth = inject(AuthService);
+  private confirm = inject(ConfirmService);
   private route = inject(ActivatedRoute);
 
   isAdmin = this.auth.isAdmin;
@@ -191,8 +193,19 @@ export class ConferenceComponent implements OnInit {
   }
 
   private refreshActiveGrid(): void {
-    if (this.view() === 'search' && this.searchSelectedFloor() !== null) {
-      this.openSearchFloor(this.searchSelectedFloor()!);
+    if (this.view() === 'search') {
+      // Re-run the search so the floor chips ("X/N free") reflect the change,
+      // then reload the open floor's rooms if one is selected.
+      const s = hhmmToMin(this.searchStart());
+      const e = hhmmToMin(this.searchEnd());
+      this.api.searchConference(this.searchDate(), s, e).subscribe({
+        next: (res) => {
+          this.searchResults.set(res.results);
+          if (this.searchSelectedFloor() !== null) {
+            this.openSearchFloor(this.searchSelectedFloor()!);
+          }
+        },
+      });
     } else if (this.view() === 'status') {
       this.loadStatusRooms(this.floor(), this.date());
     }
@@ -216,9 +229,18 @@ export class ConferenceComponent implements OnInit {
       });
   }
 
-  onDeleteBooking(id: number): void {
+  async onDeleteBooking(id: number): Promise<void> {
     const room = this.selectedRoom();
     if (!room) return;
+    const b = this.roomBookings().find((x) => x.id === id);
+    const when = b ? ` (${minToLabel(b.startMin)}–${minToLabel(b.endMin)})` : '';
+    const ok = await this.confirm.ask({
+      title: 'Delete this booking?',
+      message: `The booking for ${room.name}${when} will be permanently removed. This cannot be undone.`,
+      confirmText: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
     this.api.deleteConferenceBooking(id).subscribe({
       next: () => {
         this.showToast('Booking deleted', 'success');

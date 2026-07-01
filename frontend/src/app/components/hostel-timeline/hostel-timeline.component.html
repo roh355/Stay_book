@@ -14,74 +14,78 @@
     }
   </div>
 
-  <div class="plot">
-    <div class="plot-body">
-      <div class="gridlines">
-        @for (d of days(); track d.date) {
-          <div class="gridline" [style.left.%]="(d.index / 15) * 100"></div>
-        }
-      </div>
-
-      <div class="baseline"></div>
-
-      <div
-        #track
-        class="track"
-        [class.disabled]="!canBook()"
-        (pointerdown)="onPointerDown($event)"
-        (pointermove)="onPointerMove($event)"
-        (pointerup)="onPointerUp($event)"
-        (pointercancel)="onPointerUp($event)"
-      >
-        @for (b of bookedBlocks(); track b.id) {
-          <div
-            class="bar booked"
-            [class.deletable]="canBook()"
-            [style.left.%]="b.leftPct"
-            [style.width.%]="b.widthPct"
-            [title]="b.label"
-          >
-            <span class="bar-label">
-              <span class="d">{{ b.startLabel }}</span>
-              @if (b.endLabel) {
-                <svg class="arr" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg>
-                <span class="d">{{ b.endLabel }}</span>
-              }
-            </span>
-            @if (canBook()) {
-              <button
-                class="delete-btn"
-                type="button"
-                aria-label="Delete booking"
-                (click)="onDelete($event, b.id)"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>
-                </svg>
-              </button>
+  <div class="scroll">
+    <div class="canvas" [style.min-width.px]="dayCount() * minCell">
+      <div class="plot">
+        <div class="plot-body">
+          <div class="gridlines">
+            @for (d of days(); track d.date) {
+              <div class="gridline" [style.left.%]="(d.index / dayCount()) * 100"></div>
             }
           </div>
-        }
 
-        @if (selectionBlock(); as sel) {
+          <div class="baseline"></div>
+
           <div
-            class="bar selection"
-            [class.invalid]="!selectionValid()"
-            [style.left.%]="sel.leftPct"
-            [style.width.%]="sel.widthPct"
-          ></div>
+            #track
+            class="track"
+            [class.disabled]="!canBook()"
+            (pointerdown)="onPointerDown($event)"
+            (pointermove)="onPointerMove($event)"
+            (pointerup)="onPointerUp($event)"
+            (pointercancel)="onPointerUp($event)"
+          >
+            @for (b of bookedBlocks(); track b.id) {
+              <div
+                class="bar booked"
+                [class.deletable]="canBook()"
+                [style.left.%]="b.leftPct"
+                [style.width.%]="b.widthPct"
+                [title]="b.label"
+              >
+                <span class="bar-label">
+                  <span class="d">{{ b.startLabel }}</span>
+                  @if (b.endLabel) {
+                    <svg class="arr" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg>
+                    <span class="d">{{ b.endLabel }}</span>
+                  }
+                </span>
+                @if (canBook()) {
+                  <button
+                    class="delete-btn"
+                    type="button"
+                    aria-label="Delete booking"
+                    (click)="onDelete($event, b.id)"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>
+                    </svg>
+                  </button>
+                }
+              </div>
+            }
+
+            @if (selectionBlock(); as sel) {
+              <div
+                class="bar selection"
+                [class.invalid]="!selectionValid()"
+                [style.left.%]="sel.leftPct"
+                [style.width.%]="sel.widthPct"
+              ></div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="x-axis">
+        @for (d of days(); track d.date) {
+          <div class="day-cell">
+            <span class="day-wd">{{ d.weekday }}</span>
+            <span class="day-num">{{ d.day }}</span>
+          </div>
         }
       </div>
     </div>
-  </div>
-
-  <div class="x-axis">
-    @for (d of days(); track d.date) {
-      <div class="day-cell">
-        <span class="day-wd">{{ d.weekday }}</span>
-        <span class="day-num">{{ d.day }}</span>
-      </div>
-    }
   </div>
 
   <div class="action-row">

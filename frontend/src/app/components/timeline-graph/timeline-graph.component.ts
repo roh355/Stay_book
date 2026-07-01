@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ConferenceInterval } from '../../models';
-import { minToLabel, minToHHMM } from '../../utils/time';
+import { minToLabel, minToHHMM, formatDuration } from '../../utils/time';
 
 const SLOT = 30;
 const SLOTS = 48; // 24h / 30min
@@ -167,6 +167,10 @@ export class TimelineGraphComponent {
 
   hhmm(min: number): string {
     return minToHHMM(min);
+  }
+
+  durationLabel(startMin: number, endMin: number): string {
+    return formatDuration(endMin - startMin);
   }
 
   hourLeft(h: number): number {

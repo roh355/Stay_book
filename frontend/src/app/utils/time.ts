@@ -27,6 +27,16 @@ export function hhmmToMin(value: string): number {
   return h * 60 + m;
 }
 
+// A span of minutes -> "45m" / "2h" / "1h 30m"
+export function formatDuration(minutes: number): string {
+  const total = Math.max(0, Math.round(minutes));
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+
 // Format a Date using its LOCAL components (avoids UTC shift from toISOString).
 function toISOLocal(d: Date): string {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
@@ -40,6 +50,15 @@ export function addDaysISO(iso: string, days: number): string {
   const [y, m, d] = iso.split('-').map(Number);
   const dt = new Date(y, m - 1, d);
   dt.setDate(dt.getDate() + days);
+  return toISOLocal(dt);
+}
+
+// Add `months` to a YYYY-MM-DD string. Day overflow rolls forward naturally
+// (e.g. Jan 31 + 1 month -> Mar 3), which is fine for computing a look-ahead
+// window end.
+export function addMonthsISO(iso: string, months: number): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  const dt = new Date(y, m - 1 + months, d);
   return toISOLocal(dt);
 }
 

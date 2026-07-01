@@ -4,11 +4,12 @@ import { ThemeService } from './services/theme.service';
 import { AuthService } from './services/auth.service';
 import { UiService } from './services/ui.service';
 import { LoginModalComponent } from './components/login-modal/login-modal.component';
+import { ConfirmDialogComponent } from './components/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, LoginModalComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, LoginModalComponent, ConfirmDialogComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
 })

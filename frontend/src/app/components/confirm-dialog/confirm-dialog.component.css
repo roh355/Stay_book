@@ -1,0 +1,76 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 15, 30, 0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 20px;
+  animation: fade 0.18s ease;
+}
+
+.dialog {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  padding: 28px 26px 22px;
+  box-shadow: var(--shadow-lg);
+  animation: pop 0.2s ease;
+}
+
+@keyframes fade {
+  from { opacity: 0; }
+}
+@keyframes pop {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+}
+
+.dialog-head {
+  text-align: center;
+  margin-bottom: 22px;
+}
+.warn-icon {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 14px;
+  border-radius: 16px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  display: grid;
+  place-items: center;
+}
+.warn-icon.danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.dialog-head h2 {
+  margin: 0 0 6px;
+  font-size: 19px;
+}
+.dialog-head p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+.dialog-actions .btn {
+  min-width: 96px;
+  justify-content: center;
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: #fff;
+  border-color: var(--danger);
+}
+.btn-danger:hover:not(:disabled) {
+  filter: brightness(1.05);
+}

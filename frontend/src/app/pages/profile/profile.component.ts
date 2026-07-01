@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
+import { ConfirmService } from '../../services/confirm.service';
 import { UiService } from '../../services/ui.service';
 import { UpcomingBooking } from '../../models';
 import { daysBetween, formatDateLong, formatDateMedium, minToLabel } from '../../utils/time';
@@ -15,6 +16,7 @@ import { daysBetween, formatDateLong, formatDateMedium, minToLabel } from '../..
 export class ProfileComponent implements OnInit {
   private api = inject(ApiService);
   private router = inject(Router);
+  private confirm = inject(ConfirmService);
   auth = inject(AuthService);
   ui = inject(UiService);
 
@@ -57,8 +59,15 @@ export class ProfileComponent implements OnInit {
     this.router.navigate([path], { queryParams });
   }
 
-  deleteBooking(ev: Event, b: UpcomingBooking): void {
+  async deleteBooking(ev: Event, b: UpcomingBooking): Promise<void> {
     ev.stopPropagation();
+    const ok = await this.confirm.ask({
+      title: 'Delete this booking?',
+      message: `Your booking for ${b.roomName} on ${this.dateLabel(b)} will be permanently removed. This cannot be undone.`,
+      confirmText: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
     this.api.deleteBooking(b.type, b.id).subscribe({
       next: () => this.loadBookings(),
       error: () => {},

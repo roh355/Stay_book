@@ -89,7 +89,7 @@
       <div class="sel-col">
         <div class="sel-summary">
           <span class="sel-time">{{ label(sel.startMin) }} → {{ label(sel.endMin) }}</span>
-          <span class="sel-dur">{{ (sel.endMin - sel.startMin) / 60 }} h</span>
+          <span class="sel-dur">{{ durationLabel(sel.startMin, sel.endMin) }}</span>
           @if (!selectionValid()) {
             <span class="badge badge-danger">Overlaps a booking</span>
           }

@@ -3,10 +3,11 @@ import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
+import { ConfirmService } from '../../services/confirm.service';
 import { FloorAvailability, HostelInterval, HostelRoom } from '../../models';
-import { BookingSidebarComponent } from '../../components/booking-sidebar/booking-sidebar.component';
+import { BookingSidebarComponent, RangeKey } from '../../components/booking-sidebar/booking-sidebar.component';
 import { HostelTimelineComponent } from '../../components/hostel-timeline/hostel-timeline.component';
-import { addDaysISO, formatDateMedium, todayISO } from '../../utils/time';
+import { addDaysISO, addMonthsISO, daysBetween, formatDateMedium, todayISO } from '../../utils/time';
 
 interface Toast {
   text: string;
@@ -27,6 +28,7 @@ const WINDOW_DAYS = 15;
 export class HostelComponent implements OnInit {
   private api = inject(ApiService);
   private auth = inject(AuthService);
+  private confirm = inject(ConfirmService);
   private route = inject(ActivatedRoute);
 
   isAdmin = this.auth.isAdmin;
@@ -35,6 +37,8 @@ export class HostelComponent implements OnInit {
   floors = signal<number[]>([]);
   date = signal<string>(todayISO());
   floor = signal<number>(1);
+  // How far ahead the status-mode grid and room timeline look.
+  windowKey = signal<RangeKey>('15d');
 
   view = signal<View>('idle');
 
@@ -60,10 +64,36 @@ export class HostelComponent implements OnInit {
   // Window start used by the currently active mode.
   activeBase = computed(() => (this.view() === 'search' ? this.searchFrom() : this.date()));
 
+  // Number of days the room timeline spans: the searched range in search mode,
+  // otherwise the selected look-ahead window.
+  activeSpan = computed(() =>
+    this.view() === 'search'
+      ? daysBetween(this.searchFrom(), this.searchTo()) + 1
+      : this.windowDaysFor(this.date(), this.windowKey())
+  );
+
+  // Translate a look-ahead range key into an inclusive number of days from
+  // `base`. Month/year options are measured from the actual calendar date so
+  // "1 month" from the 2nd lands on the 2nd of next month.
+  private windowDaysFor(base: string, key: RangeKey): number {
+    switch (key) {
+      case '1m':
+        return daysBetween(base, addMonthsISO(base, 1));
+      case '3m':
+        return daysBetween(base, addMonthsISO(base, 3));
+      case '1y':
+        return daysBetween(base, addMonthsISO(base, 12));
+      case '15d':
+      default:
+        return WINDOW_DAYS;
+    }
+  }
+
   constructor() {
     effect(() => {
       const date = this.date();
       const floor = this.floor();
+      this.windowKey();
       if (this.view() !== 'status') return;
       if (!this.floors().length) return;
       this.selectedRoom.set(null);
@@ -108,7 +138,8 @@ export class HostelComponent implements OnInit {
 
   private loadStatusRooms(floor: number, date: string): void {
     this.loadingRooms.set(true);
-    this.api.getHostelRooms(floor, date).subscribe({
+    const window = this.windowDaysFor(date, this.windowKey());
+    this.api.getHostelRooms(floor, date, { window }).subscribe({
       next: (rooms) => {
         this.statusRooms.set(rooms);
         this.loadingRooms.set(false);
@@ -150,7 +181,9 @@ export class HostelComponent implements OnInit {
     this.selectedRoom.set(null);
     this.loadingSearchRooms.set(true);
     this.api
-      .getHostelRooms(floor, this.searchFrom(), { from: this.searchFrom(), to: this.searchTo() })
+      .getHostelRooms(floor, this.searchFrom(), {
+        period: { from: this.searchFrom(), to: this.searchTo() },
+      })
       .subscribe({
         next: (rooms) => {
           this.searchRooms.set(rooms);
@@ -170,7 +203,7 @@ export class HostelComponent implements OnInit {
     this.selectedRoom.set(room);
     this.loadingGraph.set(true);
     const from = this.activeBase();
-    const to = addDaysISO(from, WINDOW_DAYS - 1);
+    const to = addDaysISO(from, this.activeSpan() - 1);
     this.api.getHostelRoomBookings(room.id, from, to).subscribe({
       next: (res) => {
         this.roomBookings.set(res.bookings);
@@ -185,8 +218,17 @@ export class HostelComponent implements OnInit {
   }
 
   private refreshActiveGrid(): void {
-    if (this.view() === 'search' && this.searchSelectedFloor() !== null) {
-      this.openSearchFloor(this.searchSelectedFloor()!);
+    if (this.view() === 'search') {
+      // Re-run the search so the floor chips (min free in range) reflect the
+      // change, then reload the open floor's rooms if one is selected.
+      this.api.searchHostel(this.searchFrom(), this.searchTo()).subscribe({
+        next: (res) => {
+          this.searchResults.set(res.results);
+          if (this.searchSelectedFloor() !== null) {
+            this.openSearchFloor(this.searchSelectedFloor()!);
+          }
+        },
+      });
     } else if (this.view() === 'status') {
       this.loadStatusRooms(this.floor(), this.date());
     }
@@ -211,9 +253,22 @@ export class HostelComponent implements OnInit {
       });
   }
 
-  onDeleteBooking(id: number): void {
+  async onDeleteBooking(id: number): Promise<void> {
     const room = this.selectedRoom();
     if (!room) return;
+    const b = this.roomBookings().find((x) => x.id === id);
+    const when = b
+      ? b.startDate === b.endDate
+        ? ` (${formatDateMedium(b.startDate)})`
+        : ` (${formatDateMedium(b.startDate)} – ${formatDateMedium(b.endDate)})`
+      : '';
+    const ok = await this.confirm.ask({
+      title: 'Delete this booking?',
+      message: `The stay in ${room.name}${when} will be permanently removed. This cannot be undone.`,
+      confirmText: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
     this.api.deleteHostelBooking(id).subscribe({
       next: () => {
         this.showToast('Booking deleted', 'success');

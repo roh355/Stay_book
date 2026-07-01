@@ -79,11 +79,14 @@ export class ApiService {
   getHostelRooms(
     floor: number,
     date: string,
-    period?: { from: string; to: string }
+    opts?: { window?: number; period?: { from: string; to: string } }
   ): Observable<HostelRoom[]> {
     let params = new HttpParams().set('floor', floor).set('date', date);
-    if (period) {
-      params = params.set('from', period.from).set('to', period.to);
+    if (opts?.window) {
+      params = params.set('window', opts.window);
+    }
+    if (opts?.period) {
+      params = params.set('from', opts.period.from).set('to', opts.period.to);
     }
     return this.http.get<HostelRoom[]>('/api/hostel/rooms', { params });
   }

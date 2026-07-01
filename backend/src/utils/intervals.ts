@@ -53,13 +53,15 @@ export function addDaysISO(iso: string, days: number): string {
 }
 
 // Inclusive list of YYYY-MM-DD strings from `from` through `to`.
+// Purely string/UTC based to stay timezone-independent: parsing "YYYY-MM-DD"
+// as a local Date and reading it back via toISOString() shifts the day in any
+// non-UTC timezone. YYYY-MM-DD strings also compare correctly lexicographically.
 export function dateRange(from: string, to: string): string[] {
   const dates: string[] = [];
-  const cur = new Date(from + "T00:00:00");
-  const end = new Date(to + "T00:00:00");
-  while (cur <= end) {
-    dates.push(cur.toISOString().slice(0, 10));
-    cur.setDate(cur.getDate() + 1);
+  let cur = from;
+  while (cur <= to) {
+    dates.push(cur);
+    cur = addDaysISO(cur, 1);
   }
   return dates;
 }

@@ -45,7 +45,13 @@ router.get("/rooms", async (req: Request, res: Response) => {
     if (periodErr) return res.status(400).json({ error: periodErr });
   }
 
-  const windowEnd = addDaysISO(date, WINDOW_DAYS - 1);
+  // Optional look-ahead window size (days). Defaults to WINDOW_DAYS, clamped
+  // to a sane range so a stray/huge value can't blow up the day scan.
+  const rawWindow = Number(req.query.window);
+  const windowDays =
+    Number.isInteger(rawWindow) && rawWindow > 0 ? Math.min(rawWindow, 366) : WINDOW_DAYS;
+
+  const windowEnd = addDaysISO(date, windowDays - 1);
   const windowDates = dateRange(date, windowEnd);
 
   // Fetch bookings across whichever span is widest (window or search period).
@@ -76,7 +82,7 @@ router.get("/rooms", async (req: Request, res: Response) => {
         (b) => b.startDate <= date && b.endDate >= date
       ),
       freeDays,
-      windowDays: WINDOW_DAYS,
+      windowDays,
       periodAvailable: hasPeriod
         ? !room.hostelBookings.some(
             (b) =>

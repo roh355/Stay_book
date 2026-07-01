@@ -29,13 +29,13 @@
 
   @if (view() === 'search' && searchResults() !== null) {
     <div class="floor-results card">
-      <span class="fr-label">Floors with availability — click to view rooms (min free in range):</span>
+      <span class="fr-label">Floors with availability — click a floor to view its rooms. Counts show the fewest rooms free at any point across your date range.</span>
       @if (searchResults()!.length) {
         <div class="result-chips">
           @for (r of searchResults()!; track r.floor) {
             <button class="result-chip" type="button" [class.active]="searchSelectedFloor() === r.floor" (click)="openSearchFloor(r.floor)">
               <strong>Floor {{ r.floor }}</strong>
-              <span>min {{ r.availableRooms }}/{{ r.totalRooms }} free</span>
+              <span>{{ r.availableRooms }}/{{ r.totalRooms }} free</span>
             </button>
           }
         </div>
@@ -53,6 +53,9 @@
       (floorChange)="floor.set($event)"
       [floors]="floors()"
       [active]="view() === 'status'"
+      [showRange]="true"
+      [range]="windowKey()"
+      (rangeChange)="windowKey.set($event)"
       (status)="showStatus()"
     />
 
@@ -76,6 +79,7 @@
           <app-hostel-timeline
             [bookings]="roomBookings()"
             [baseDate]="activeBase()"
+            [dayCount]="activeSpan()"
             [canBook]="isAdmin()"
             (book)="onBook($event)"
             (deleteBooking)="onDeleteBooking($event)"

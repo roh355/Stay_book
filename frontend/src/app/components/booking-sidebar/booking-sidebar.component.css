@@ -2,39 +2,167 @@
   padding: 18px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
   position: sticky;
   top: 86px;
 }
 
-.block {
+.ctrl {
   display: flex;
   flex-direction: column;
-}
-.pretty {
-  margin-top: 8px;
-  font-size: 13px;
-  color: var(--text-muted);
-  font-weight: 500;
+  gap: 7px;
 }
 
-.nav-grid {
+.stepper {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.step-btn {
+  flex: 0 0 auto;
+  width: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+.step-btn:hover:not(:disabled) {
+  background: var(--surface-2);
+  border-color: var(--border-strong);
+}
+.step-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.step-mid {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+.step-label {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.step-label:hover {
+  border-color: var(--accent);
+}
+.step-label > span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.step-label .caret {
+  color: var(--text-faint);
+  flex: 0 0 auto;
+}
+.step-label .cal-icon {
+  color: var(--text-muted);
+  flex: 0 0 auto;
+}
+
+/* Visually-hidden native date input; opened programmatically via showPicker(). */
+.sr-date {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 244px;
+  overflow-y: auto;
+  animation: drop 0.14s ease;
+}
+@keyframes drop {
+  from { opacity: 0; transform: translateY(-4px); }
+}
+.dropdown-item {
+  text-align: left;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.dropdown-item:hover {
+  background: var(--surface-2);
+}
+.dropdown-item.active {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-weight: 700;
+}
+
+.segmented {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  padding-top: 4px;
-  border-top: 1px solid var(--border);
+  gap: 6px;
 }
-.nav {
-  padding: 9px 10px;
+.seg {
+  padding: 8px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-muted);
   font-size: 12.5px;
-  justify-content: flex-start;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.seg:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.seg.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
 }
 
 .status-btn {
   width: 100%;
   justify-content: center;
   gap: 8px;
+  margin-top: 2px;
 }
 
 @media (max-width: 900px) {
